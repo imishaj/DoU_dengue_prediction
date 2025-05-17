@@ -1,57 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[11]:
-
-
-# import rasterio
-# import geopandas as gpd
-# from shapely.geometry import box
-# import os
-
-# # Path to the directory containing the TIFF files
-# tiff_dir = "/Users/imishaj/Desktop/340W/images/50001"
-# output_dir = "/Users/imishaj/Desktop/340W/grids"
-# os.makedirs(output_dir, exist_ok=True)
-
-# # Process each TIFF file
-# for tiff_file in os.listdir(tiff_dir):
-#     if not tiff_file.endswith(".tiff"):
-#         continue
-    
-#     tiff_path = os.path.join(tiff_dir, tiff_file)
-
-#     # Read the TIFF file to get bounds and CRS
-#     with rasterio.open(tiff_path) as src:
-#         bounds = src.bounds
-#         crs = src.crs
-    
-#     # Reproject bounds to EPSG:3857 (meter-based)
-#     gdf_bounds = gpd.GeoDataFrame({"geometry": [box(bounds.left, bounds.bottom, bounds.right, bounds.top)]}, crs=crs)
-#     gdf_bounds = gdf_bounds.to_crs("EPSG:3857")
-    
-#     # Extract the new bounding box
-#     minx, miny, maxx, maxy = gdf_bounds.total_bounds
-    
-#     # Create 1x1 km grid
-#     grid_size = 1000  # 1 km in meters
-#     grid = []
-    
-#     for x in range(int(minx), int(maxx), grid_size):
-#         for y in range(int(miny), int(maxy), grid_size):
-#             grid.append(box(x, y, x + grid_size, y + grid_size))
-    
-#     # Convert to GeoDataFrame
-#     grid_gdf = gpd.GeoDataFrame(geometry=grid, crs="EPSG:3857")
-    
-#     # Save as shapefile
-#     grid_filename = f"grid_1km_{os.path.splitext(tiff_file)[0]}.shp"
-#     grid_gdf.to_file(os.path.join(output_dir, grid_filename))
-#     print(f"Saved grid: {grid_filename}")
-
-
-# In[20]:
-
 
 import rasterio
 import geopandas as gpd
