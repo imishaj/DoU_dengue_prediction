@@ -11,8 +11,7 @@ DoU_dengue_prediction/
 ├── DoU_Dengue_pred.ipynb      # Main dengue prediction notebook (with DoU, modified for Municipality 50001 - Villavicencio, Colombia)
 ├── No_DoU_Dengue_pred.ipynb   # Baseline dengue prediction notebook (without DoU, modified SateliteBench's code for Municipality 50001 - Villavicencio, Colombia)
 ├── DoU_Classification.py      # Urbanization classification scripts for extracting and analyzing urbanization metrics
-├── .gitignore                 # Git ignore file
-└── README.md                  # Project documentation (this file)
+└──.gitignore                 # Git ignore file
 ```
 
 ## 🌐 Project Overview
