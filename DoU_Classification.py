@@ -67,33 +67,36 @@ import rasterio
 from rasterio.windows import from_bounds
 from skimage.feature import graycomatrix, graycoprops
 
-# ---------- paths ----------
+
 tiff_dir   = "/Users/imishaj/Desktop/340W/images/50001"
 grid_dir   = "/Users/imishaj/Desktop/340W/grids50001"   # new grids
 output_csv = "/Users/imishaj/Desktop/340W/grid_features_50001.csv"
 
 all_features = []
 
-# ---------- loop over grid shapefiles ----------
+# Iterate through each shapefile in the grid directory
 for grid_file in os.listdir(grid_dir):
     if not grid_file.endswith(".shp"):
         continue
 
+    # Extract the date from the filename 
     grid_path = os.path.join(grid_dir, grid_file)
-    date      = grid_file.split("_")[-1].split(".")[0]   # e.g. 2018‑09‑16
+    date      = grid_file.split("_")[-1].split(".")[0]  
 
+    # Construct the expected TIFF file path for this date
     tiff_path = os.path.join(tiff_dir, f"image_{date}.tiff")
     if not os.path.exists(tiff_path):
         print(f"[{date}]  🛈  Missing TIFF → {tiff_path}")
         continue
 
-    # grids already EPSG:4326
+    
     grids = gpd.read_file(grid_path)
 
     with rasterio.open(tiff_path) as src:
         for idx, row in grids.iterrows():
             minx, miny, maxx, maxy = row.geometry.bounds
             try:
+                # Extract the pixel window corresponding to the current grid cell
                 window = from_bounds(minx, miny, maxx, maxy,
                                      transform=src.transform)
 
@@ -102,11 +105,10 @@ for grid_file in os.listdir(grid_dir):
                 red  = np.squeeze(src.read(4, window=window)).astype(float)
                 swir = np.squeeze(src.read(11, window=window)).astype(float)
 
-                # empty window?
                 if nir.size == 0 or red.size == 0 or swir.size == 0:
                     continue
 
-                # mask no‑data (assume value 0)
+                # Replace no-data values
                 nir  = np.where(nir  == 0, np.nan, nir)
                 red  = np.where(red  == 0, np.nan, red)
                 swir = np.where(swir == 0, np.nan, swir)
@@ -116,7 +118,7 @@ for grid_file in os.listdir(grid_dir):
                 ndbi_img = (swir - nir) / (swir + nir)
                 bu_img   = (swir - red) / (swir + red)
 
-                # flatten finite pixels for summary stats
+                # Flatten the images to 1D arrays, ignoring NaN values
                 ndvi = ndvi_img[np.isfinite(ndvi_img)]
                 ndbi = ndbi_img[np.isfinite(ndbi_img)]
                 bu   = bu_img[np.isfinite(bu_img)]
@@ -124,6 +126,7 @@ for grid_file in os.listdir(grid_dir):
                 if ndvi.size == 0 or ndbi.size == 0 or bu.size == 0:
                     continue
 
+                # feature dictionary
                 feat = {
                     "grid_id":   idx,
                     "date":      date,
@@ -135,7 +138,7 @@ for grid_file in os.listdir(grid_dir):
                     "bu_std":    bu.std()
                 }
 
-                # ---------- texture metrics ----------
+                # texture metrics
                 if ndvi_img.shape[0] > 1 and ndvi_img.shape[1] > 1:
                     # scale finite NDVI to 0‑255 8‑bit
                     ndvi_min, ndvi_max = np.nanmin(ndvi_img), np.nanmax(ndvi_img)
@@ -144,8 +147,10 @@ for grid_file in os.listdir(grid_dir):
                     else:
                         ndvi_scaled = np.zeros_like(ndvi_img)
 
+                    # Convert to 8-bit integers
                     ndvi_scaled = np.nan_to_num(ndvi_scaled).astype(np.uint8)
 
+                    # Compute GLCM (Gray-Level Co-occurrence Matrix) and texture properties
                     glcm = graycomatrix(ndvi_scaled,
                                         distances=[1],
                                         angles=[0],
@@ -162,10 +167,11 @@ for grid_file in os.listdir(grid_dir):
                 all_features.append(feat)
 
             except Exception as e:
+                # Print error message if processing fails for the current grid
                 print(f"Grid {idx} on {date} → {e}")
                 continue
 
-# ---------- save ----------
+# Save all extracted features to a CSV file
 pd.DataFrame(all_features).to_csv(output_csv, index=False)
 print(f"✓  Features saved → {output_csv}  ({len(all_features)} rows)")
 
@@ -185,12 +191,12 @@ import rasterio
 from rasterio.windows import from_bounds
 from skimage.feature import graycomatrix, graycoprops
 
-# ---------- paths ----------
+
 tiff_dir   = "/Users/imishaj/Desktop/340W/images/50001"
 grid_dir   = "/Users/imishaj/Desktop/340W/grids50001"
 output_csv = "/Users/imishaj/Desktop/340W/grid_features_T2_50001.csv"
 
-# ---------- helper ----------
+# helper
 def glcm_metrics(img_2d):
     """Return contrast, homogeneity, entropy for a uint8 image."""
     glcm = graycomatrix(img_2d, distances=[1], angles=[0],
@@ -200,13 +206,15 @@ def glcm_metrics(img_2d):
     entropy     = -np.sum(glcm * np.log2(glcm + 1e-10))
     return contrast, homogeneity, entropy
 
-# ---------- extraction ----------
+
 rows = []
 
+# Iterate over all grid shapefiles
 for grid_file in os.listdir(grid_dir):
     if not grid_file.endswith(".shp"):
         continue
     grid_path = os.path.join(grid_dir, grid_file)
+    # Extract date from the filenam
     date      = grid_file.split("_")[-1].split(".")[0]
 
     tiff_path = os.path.join(tiff_dir, f"image_{date}.tiff")
@@ -214,14 +222,17 @@ for grid_file in os.listdir(grid_dir):
         print(f"[{date}]  missing TIFF")
         continue
 
+    # Load grid shapefile
     grids = gpd.read_file(grid_path)          # EPSG:4326
 
+    # Get the bounding box of the current grid cell
     with rasterio.open(tiff_path) as src:
         for idx, row in grids.iterrows():
             minx, miny, maxx, maxy = row.geometry.bounds
+            # Extract the pixel window
             window = from_bounds(minx, miny, maxx, maxy, transform=src.transform)
 
-            # read bands → squeeze to 2‑D
+            # Read NIR, Red, and SWIR bands for NDVI, NDBI, Built-up, and NDWI calculations
             nir  = np.squeeze(src.read(8, window=window)).astype(float)
             red  = np.squeeze(src.read(4, window=window)).astype(float)
             swir = np.squeeze(src.read(11, window=window)).astype(float)
@@ -229,17 +240,18 @@ for grid_file in os.listdir(grid_dir):
             if nir.size == 0 or red.size == 0 or swir.size == 0:
                 continue
 
+            # Replace no-data values with NaN
             nir  = np.where(nir  == 0, np.nan, nir)
             red  = np.where(red  == 0, np.nan, red)
             swir = np.where(swir == 0, np.nan, swir)
 
-            # ---- indices (2‑D) ----
+            # Calculate T1 indices
             ndvi_img = (nir - red)  / (nir + red)
             ndbi_img = (swir - nir) / (swir + nir)
             bu_img   = (swir - red) / (swir + red)
-            ndwi_img = (nir - swir) / (nir + swir)        # NEW (water)
+            ndwi_img = (nir - swir) / (nir + swir)    # Calculate T2 index (NDWI - water)
 
-            # finite pixels for stats
+            # Finite pixels 
             ndvi = ndvi_img[np.isfinite(ndvi_img)]
             ndbi = ndbi_img[np.isfinite(ndbi_img)]
             bu   = bu_img[np.isfinite(bu_img)]
@@ -248,21 +260,22 @@ for grid_file in os.listdir(grid_dir):
             if ndvi.size == 0 or ndbi.size == 0 or bu.size == 0:
                 continue   # still skip empty
 
-            # ---- basic stats ----
+            # Feature dictionary
             feat = {
                 "grid_id":   idx,
                 "date":      date,
-                # T1 stats
+                # T1 stats (vegetation, built-up, bare land)
                 "ndvi_mean": ndvi.mean(),  "ndvi_std":  ndvi.std(),
                 "ndbi_mean": ndbi.mean(),  "ndbi_std":  ndbi.std(),
                 "bu_mean":   bu.mean(),    "bu_std":    bu.std(),
-                # NEW T2: NDWI stats
+                # T2 stats (water index)
                 "ndwi_mean": ndwi.mean(),  "ndwi_std":  ndwi.std(),
-                # NEW T2: built‑up fraction (NDBI > 0)
+                # Built-up fraction (proportion of NDBI > 0 pixels)
                 "built_frac": (ndbi > 0).sum() / ndbi.size
             }
 
-            # ---- texture: NDVI (existing) ----
+            # texture
+            # Calculate GLCM metrics for NDVI if grid cell is not a single pixel
             if ndvi_img.shape[0] > 1 and ndvi_img.shape[1] > 1:
                 ndvi_scaled = np.nan_to_num(
                     ((ndvi_img - np.nanmin(ndvi_img)) /
@@ -271,7 +284,7 @@ for grid_file in os.listdir(grid_dir):
                 c, h, e = glcm_metrics(ndvi_scaled)
                 feat.update({"ndvi_contrast": c, "ndvi_homogeneity": h, "ndvi_entropy": e})
 
-            # ---- texture: NDBI (NEW) ----
+            # Calculate GLCM metrics for NDBI if grid cell is not a single pixel
             if ndbi_img.shape[0] > 1 and ndbi_img.shape[1] > 1:
                 ndbi_scaled = np.nan_to_num(
                     ((ndbi_img - np.nanmin(ndbi_img)) /
@@ -282,7 +295,7 @@ for grid_file in os.listdir(grid_dir):
 
             rows.append(feat)
 
-# ---------- save ----------
+# Save the extracted features to a CSV file
 pd.DataFrame(rows).to_csv(output_csv, index=False)
 print(f"✓  saved {len(rows)} rows  →  {output_csv}")
 
@@ -301,23 +314,23 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-# ---------- 1. load the Tier‑2 feature table ----------
+
 df = pd.read_csv("/Users/imishaj/Desktop/340W/grid_features_T2_50001.csv")
 
 # remove non‑numeric identifier columns
 X_raw = df.drop(columns=["grid_id", "date"])
 
-# ---------- 2. standardise features ----------
+# standardise features
 scaler = StandardScaler()
 X = scaler.fit_transform(X_raw)
 
-# ---------- 3. run K‑means with k = 3 ----------
+# kmeans clustering
 k = 3
 km = KMeans(n_clusters=k, random_state=42, n_init="auto")
 clusters = km.fit_predict(X)
-df["DoU_cluster"] = clusters          # 0,1,2 numeric labels
+df["DoU_cluster"] = clusters          
 
-# ---------- 4. evaluate clustering ----------
+
 sil = silhouette_score(X, clusters)
 print(f"Silhouette score (k={k}): {sil:.3f}")
 
@@ -327,8 +340,7 @@ centroids = centroids * X_raw.std(axis=0).values + X_raw.mean(axis=0).values
 print("\nCluster centroids (original feature space):")
 print(centroids.round(3))
 
-# ---------- 5. map cluster IDs to human labels ----------
-# Identify clusters based on built_frac
+# Identify clusters based on built_frac and map cluster IDs to human labels
 rank = centroids["built_frac"].sort_values().index
 label_map = {rank[0]: "rural",    # lowest built_frac
              rank[1]: "semi",     # middle built_frac
@@ -338,13 +350,6 @@ df["DoU_label"] = df["DoU_cluster"].map(label_map)
 print("\nLabel counts:")
 print(df["DoU_label"].value_counts())
 
-# ---------- 6. save the labelled table ----------
+# Save the output csv
 df.to_csv("/Users/imishaj/Desktop/340W/grid_features_T2_DoU.csv", index=False)
 print("\n✓ Saved  grid_features_T2_DoU.csv")
-
-
-# In[ ]:
-
-
-
-
