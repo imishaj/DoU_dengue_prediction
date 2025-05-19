@@ -18,6 +18,10 @@ DoU_dengue_prediction/
 
 Dengue fever outbreaks are often influenced by urbanization patterns. This project aims to review how dengue prediction is impacted by integrating Degree of Urbanization (DoU) metrics extracted from satellite images, along with conventional environmental and demographic features.
 
+## 📊 Data
+
+Satellite imagery - https://huggingface.co/datasets/MITCriticalData/SAT1_dataset_5_top_cities/tree/main
+
 ## 🚀 Getting Started
 
 ### Prerequisites
