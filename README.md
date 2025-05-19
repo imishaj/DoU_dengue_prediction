@@ -49,17 +49,17 @@ jupyter notebook No_DoU_Dengue_pred.ipynb
 ```
 This notebook runs the baseline dengue prediction model without using DoU features, modified specifically for Municipality 50001 - Villavicencio, Colombia.
 
-### 2. Run the DoU-Enhanced Model
-```bash
-jupyter notebook DoU_Dengue_pred.ipynb
-```
-This notebook includes DoU metrics in the dengue prediction pipeline for Municipality 50001 - Villavicencio, Colombia, improving prediction accuracy by incorporating urbanization data.
-
-### 3. Urbanization Classification
+### 2. Urbanization Classification
 ```bash
 python DoU_Classification.py
 ```
 This script is used to extract and classify urbanization metrics from satellite imagery, providing key inputs for the DoU-enhanced model.
+
+### 3. Run the DoU-Enhanced Model
+```bash
+jupyter notebook DoU_Dengue_pred.ipynb
+```
+This notebook includes DoU metrics in the dengue prediction pipeline for Municipality 50001 - Villavicencio, Colombia, improving prediction accuracy by incorporating urbanization data.
 
 ## 📈 Results and Metrics
 Evaluate the performance of the DoU-enhanced model within the provided notebooks. The results are typically measured using RMSE, MAE, and F1 scores.
